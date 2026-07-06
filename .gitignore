@@ -1,0 +1,15 @@
+# mdbook 构建产物
+/docs/html/
+
+# macOS
+.DS_Store
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
+*~
+
+# 临时文件
+*.tmp
+*.bak

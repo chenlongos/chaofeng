@@ -1,0 +1,33 @@
+[book]
+title = "Chaofeng"
+description = "Chaofeng 学员工作报告站"
+authors = ["Chaofeng Contributors"]
+language = "zh"
+multilingual = false
+src = "src"
+
+[build]
+build-dir = "html"
+create-missing = true
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/chenlongos/chaofeng"
+edit-url-template = "https://github.com/chenlongos/chaofeng/edit/main/docs/src/{path}"
+site-url = "/chaofeng/"
+no-section-label = false
+mathjax-support = false
+copy-fonts = true
+additional-css = []
+additional-js = []
+
+[output.html.fold]
+enable = true
+level = 0
+
+[output.html.playground]
+editable = false
+copyable = true
+copy-js = true
+line-numbers = true
