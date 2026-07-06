@@ -3,7 +3,6 @@ title = "Chaofeng"
 description = "Chaofeng 学员工作报告站"
 authors = ["Chaofeng Contributors"]
 language = "zh"
-multilingual = false
 src = "src"
 
 [build]
