@@ -1,0 +1,15 @@
+[project]
+name = "agent-vla"
+version = "0.1.0"
+description = "Decoupled agent, VLA, and LLM demo framework for desktop robot skills."
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "pydantic",
+  "pyyaml",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+

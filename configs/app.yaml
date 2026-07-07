@@ -1,0 +1,44 @@
+agent:
+  name: desktop_agent
+  default_language: zh
+  vla_service_url: http://127.0.0.1:8011
+  llm_service_url: http://127.0.0.1:8012
+  intent_rules:
+    robot.pick_ball:
+      keywords: ["捡球", "拿球", "抓球", "捡起来", "把球捡起来", "把球拿起来", "pick ball"]
+      skill_id: ball_pick_v1
+    robot.turn_off_light:
+      keywords: ["关灯", "关闭灯", "turn off light"]
+      skill_id: light_switch_v1
+    llm.general_qa:
+      keywords: []
+
+vla:
+  provider: mock
+  robot:
+    type: so101_follower
+    port: /dev/ttyACM0
+    id: follower
+    cameras: "{ front: {type: opencv, index_or_path: 0, width: 160, height: 120, fps: 30, fourcc: MJPG} }"
+  runtime:
+    cwd: /home/czw1/lerobot
+    conda_env: lerobot
+    fps: 1
+    duration_s: 15
+    display_data: false
+    return_to_initial_position: false
+  skills:
+    ball_pick_v1:
+      name: Pick up ball
+      task_prompt: "Pick up the ball and place it in the target area."
+      policy_path: /home/czw1/lerobot/outputs/train/so101_ball_pick_smolvla_v1/checkpoints/002000/pretrained_model
+      rename_map: "{ observation.images.front: observation.images.camera1 }"
+    light_switch_v1:
+      name: Turn off light
+      task_prompt: "Press the light switch to turn off the light."
+      policy_path: /home/czw1/lerobot/outputs/train/so101_light_switch_smolvla_v1/checkpoints/002000/pretrained_model
+      rename_map: "{ observation.images.front: observation.images.camera1 }"
+
+llm:
+  provider: mock
+  model: mock-zh-assistant

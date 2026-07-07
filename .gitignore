@@ -1,15 +1,45 @@
-# mdbook 构建产物
+# mdBook build outputs
 /docs/html/
 
-# macOS
-.DS_Store
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# 编辑器
-.idea/
-.vscode/
-*.swp
-*~
+# Virtual environments and local env files
+.venv/
+venv/
+env/
+.env
 
-# 临时文件
+# Logs and temporary files
+*.log
 *.tmp
 *.bak
+*.swp
+*~
+tmp/
+logs/
+
+# Local runtime outputs
+outputs/
+runs/
+data/
+artifacts/
+
+# Large model/checkpoint files should be stored outside git or via Git LFS.
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.om
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
