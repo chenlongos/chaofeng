@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /home/czw1/ChenLong-Robot-Internship/agent_vla
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 bash scripts/run_vla_service.sh > /tmp/agent_vla_vla.log 2>&1 &
 vla_pid=$!
@@ -17,4 +19,3 @@ trap cleanup EXIT
 
 sleep 3
 bash scripts/smoke_test.sh
-

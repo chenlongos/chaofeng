@@ -1,4 +1,4 @@
-# 接口契约
+﻿# 接口契约
 
 ## Agent API
 
@@ -64,7 +64,7 @@ POST /v1/chat?dry_run=true
       "task_prompt": "Pick up the ball and place it in the target area.",
       "status": "available",
       "metadata": {
-        "policy_path": "/home/czw1/..."
+        "policy_path": "$HOME/..."
       }
     }
   ]

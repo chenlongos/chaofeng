@@ -21,7 +21,7 @@ vla:
     id: follower
     cameras: "{ front: {type: opencv, index_or_path: 0, width: 160, height: 120, fps: 30, fourcc: MJPG} }"
   runtime:
-    cwd: /home/czw1/lerobot
+    cwd: ${LEROBOT_HOME}
     conda_env: lerobot
     fps: 1
     duration_s: 15
@@ -31,12 +31,12 @@ vla:
     ball_pick_v1:
       name: Pick up ball
       task_prompt: "Pick up the ball and place it in the target area."
-      policy_path: /home/czw1/lerobot/outputs/train/so101_ball_pick_smolvla_v1/checkpoints/002000/pretrained_model
+      policy_path: ${LEROBOT_HOME}/outputs/train/so101_ball_pick_smolvla_v1/checkpoints/002000/pretrained_model
       rename_map: "{ observation.images.front: observation.images.camera1 }"
     light_switch_v1:
       name: Turn off light
       task_prompt: "Press the light switch to turn off the light."
-      policy_path: /home/czw1/lerobot/outputs/train/so101_light_switch_smolvla_v1/checkpoints/002000/pretrained_model
+      policy_path: ${LEROBOT_HOME}/outputs/train/so101_light_switch_smolvla_v1/checkpoints/002000/pretrained_model
       rename_map: "{ observation.images.front: observation.images.camera1 }"
 
 llm:

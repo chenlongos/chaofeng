@@ -1,4 +1,4 @@
-# Agent + VLA + LLM 桌面机器人 Demo 框架
+﻿# Agent + VLA + LLM 桌面机器人 Demo 框架
 
 这个项目是第一版桌面机器人 Demo 的解耦框架。目标是在当前 WSL2 Ubuntu 24 环境里，把用户输入路由到两类能力：
 
@@ -7,7 +7,190 @@
 
 框架默认使用 mock provider，可以先不接真实机器人、不接真实大模型就跑通接口。后续只需要替换 provider 或配置，就可以换成真实 SmolVLA、Orange Pi Ascend NPU 推理服务、OpenAI、Ollama、本地大模型等。
 
-## 一、整体架构
+## 一、环境配置
+
+本项目第一版运行在当前 WSL2 Ubuntu 24.04 环境中，默认复用已经配置好的 `lerobot` conda 环境。
+
+### 1. 基础环境
+
+当前约定环境：
+
+```text
+系统：WSL2 Ubuntu-24.04
+用户目录：$HOME
+项目目录：$PROJECT_ROOT
+LeRobot 目录：$LEROBOT_HOME
+conda 环境：lerobot
+Python：3.12
+```
+
+每次开发前先进入环境：
+
+```bash
+source $HOME/miniforge3/etc/profile.d/conda.sh
+conda activate lerobot
+cd $PROJECT_ROOT
+```
+
+### 2. Python 依赖
+
+框架本身需要：
+
+```text
+fastapi
+uvicorn
+pydantic
+pyyaml
+```
+
+当前这些依赖已经安装在 `lerobot` conda 环境中。如果新机器重新配置，可以执行：
+
+```bash
+source $HOME/miniforge3/etc/profile.d/conda.sh
+conda activate lerobot
+
+python -m pip install fastapi uvicorn pydantic pyyaml
+```
+
+检查代码能否正常导入：
+
+```bash
+cd $PROJECT_ROOT
+bash scripts/check_imports.sh
+```
+
+期望输出：
+
+```text
+imports ok
+Agent API VLA Service LLM Service
+```
+
+### 3. 硬件和 LeRobot 约定
+
+真实 VLA 执行依赖当前 WSL 里的 LeRobot 和已连接硬件。
+
+当前硬件端口约定：
+
+```text
+SO101 follower 从臂：/dev/ttyACM0
+SO101 leader 主臂：/dev/ttyACM1
+摄像头：/dev/video0
+```
+
+摄像头配置固定写在 `configs/app.yaml`：
+
+```yaml
+cameras: "{ front: {type: opencv, index_or_path: 0, width: 160, height: 120, fps: 30, fourcc: MJPG} }"
+```
+
+注意：
+
+- 摄像头硬件侧使用 `fps: 30`，这是当前摄像头实际支持的值。
+- 数据集保存频率通常用 `dataset.fps=10`，它和摄像头硬件 FPS 不是同一个参数。
+- 如果 WSL 里看不到设备，需要先在 Windows 侧用 `usbipd` attach 对应 USB 设备。
+
+WSL 里检查设备：
+
+```bash
+ls -l /dev/ttyACM*
+ls -l /dev/video*
+```
+
+摄像头权限如果有问题，可以临时执行：
+
+```bash
+sudo chmod 666 /dev/video*
+```
+
+### 4. 服务端口
+
+本框架拆成三个独立 HTTP 服务：
+
+```text
+Agent API：   http://127.0.0.1:8010
+VLA Service： http://127.0.0.1:8011
+LLM Service： http://127.0.0.1:8012
+```
+
+这些地址配置在：
+
+```text
+configs/app.yaml
+```
+
+其中：
+
+```yaml
+vla_service_url: http://127.0.0.1:8011
+llm_service_url: http://127.0.0.1:8012
+```
+
+意思是 Agent API 在需要调用机器人能力时访问 VLA Service，在需要调用语言模型能力时访问 LLM Service。
+
+### 5. 启动服务
+
+三个终端分别启动：
+
+```bash
+cd $PROJECT_ROOT
+bash scripts/run_vla_service.sh
+```
+
+```bash
+cd $PROJECT_ROOT
+bash scripts/run_llm_service.sh
+```
+
+```bash
+cd $PROJECT_ROOT
+bash scripts/run_agent_api.sh
+```
+
+快速 mock 联调可以直接运行：
+
+```bash
+cd $PROJECT_ROOT
+bash scripts/run_mock_stack_test.sh
+```
+
+这个脚本会临时启动三个服务，执行冒烟测试，然后自动关闭服务。
+
+### 6. mock 模式和真实 VLA 模式
+
+默认配置是：
+
+```yaml
+vla:
+  provider: mock
+```
+
+这时不会真的控制机械臂，只用于验证 Agent 能不能正确调用 VLA。
+
+如果要调用真实 LeRobot/SmolVLA，把 `configs/app.yaml` 改成：
+
+```yaml
+vla:
+  provider: lerobot_rollout
+```
+
+并确认技能里的 `policy_path` 指向真实 checkpoint，例如：
+
+```yaml
+policy_path: $LEROBOT_HOME/outputs/train/so101_ball_pick_smolvla_v1/checkpoints/005000/pretrained_model
+```
+
+真实执行前建议先 dry-run：
+
+```bash
+curl -s -X POST "http://127.0.0.1:8010/v1/chat?dry_run=true" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"帮我把球捡起来","session_id":"demo"}'
+```
+
+确认命令正确后，再去掉 `dry_run=true` 真实执行。
+
+## 二、整体架构
 
 ```text
 用户输入
@@ -120,7 +303,7 @@ llm_service   LLM 服务，封装 OpenAI、Ollama、本地大模型等
 默认读取：
 
 ```text
-/home/czw1/ChenLong-Robot-Internship/agent_vla/configs/app.yaml
+$PROJECT_ROOT/configs/app.yaml
 ```
 
 主要函数：
@@ -501,7 +684,7 @@ POST /v1/chat?dry_run=true
       "task_prompt": "Pick up the ball and place it in the target area.",
       "status": "available",
       "metadata": {
-        "policy_path": "/home/czw1/..."
+        "policy_path": "$HOME/..."
       }
     }
   ]
@@ -592,7 +775,7 @@ POST /v1/chat?dry_run=true
 5. VLA Service 查询 configs/app.yaml
    找到 ball_pick_v1:
      task_prompt = "Pick up the ball and place it in the target area."
-     policy_path = "/home/czw1/lerobot/outputs/train/..."
+     policy_path = "$LEROBOT_HOME/outputs/train/..."
 
 6. VLA provider 执行
    mock provider：返回假执行结果
@@ -744,7 +927,7 @@ vla:
   skills:
     ball_pick_v1:
       task_prompt: "Pick up the ball and place it in the target area."
-      policy_path: /home/czw1/lerobot/outputs/train/so101_ball_pick_smolvla_v1/checkpoints/002000/pretrained_model
+      policy_path: $LEROBOT_HOME/outputs/train/so101_ball_pick_smolvla_v1/checkpoints/002000/pretrained_model
 
 llm:
   provider: mock
@@ -771,7 +954,7 @@ llm:
 ### 1. 检查导入
 
 ```bash
-cd /home/czw1/ChenLong-Robot-Internship/agent_vla
+cd $PROJECT_ROOT
 bash scripts/check_imports.sh
 ```
 
@@ -780,35 +963,35 @@ bash scripts/check_imports.sh
 终端 1：
 
 ```bash
-cd /home/czw1/ChenLong-Robot-Internship/agent_vla
+cd $PROJECT_ROOT
 bash scripts/run_vla_service.sh
 ```
 
 终端 2：
 
 ```bash
-cd /home/czw1/ChenLong-Robot-Internship/agent_vla
+cd $PROJECT_ROOT
 bash scripts/run_llm_service.sh
 ```
 
 终端 3：
 
 ```bash
-cd /home/czw1/ChenLong-Robot-Internship/agent_vla
+cd $PROJECT_ROOT
 bash scripts/run_agent_api.sh
 ```
 
 ### 3. 冒烟测试
 
 ```bash
-cd /home/czw1/ChenLong-Robot-Internship/agent_vla
+cd $PROJECT_ROOT
 bash scripts/smoke_test.sh
 ```
 
 或者一次性启动 mock 栈并测试：
 
 ```bash
-cd /home/czw1/ChenLong-Robot-Internship/agent_vla
+cd $PROJECT_ROOT
 bash scripts/run_mock_stack_test.sh
 ```
 

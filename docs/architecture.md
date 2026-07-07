@@ -1,4 +1,4 @@
-# 架构设计
+﻿# 架构设计
 
 ## 设计目标
 
@@ -128,7 +128,7 @@ skills:
   ball_pick_v1:
     name: Pick up ball
     task_prompt: "Pick up the ball and place it in the target area."
-    policy_path: /home/czw1/lerobot/outputs/train/so101_ball_pick_smolvla_v1/checkpoints/002000/pretrained_model
+    policy_path: $LEROBOT_HOME/outputs/train/so101_ball_pick_smolvla_v1/checkpoints/002000/pretrained_model
     rename_map: "{ observation.images.front: observation.images.camera1 }"
 ```
 
