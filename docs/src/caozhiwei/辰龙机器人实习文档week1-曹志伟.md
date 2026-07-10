@@ -96,12 +96,6 @@ bash scripts/run_mock_stack_test.sh
 - 输入 `pick ball` 可以正确路由到 `robot.pick_ball`。
 - 输入“北京有什么旅游景点”可以正确路由到 `llm.general_qa`，并调用 LLM Service。
 
-调试过程中发现过一个中文关键词匹配问题：最初只写了“捡球”，但“把球捡起来”不包含连续的“捡球”，导致被错误路由到 LLM。后续已在 `configs/app.yaml` 中补充关键词：
-
-```yaml
-keywords: ["捡球", "拿球", "抓球", "捡起来", "把球捡起来", "把球拿起来", "pick ball"]
-```
-
 整体来看，第一版框架已经具备以下能力：
 
 - Agent、VLA、LLM 三方解耦。
@@ -275,6 +269,46 @@ lerobot-rollout \
 ```
 
 这一部分的核心成果是：确定了第一版 SmolVLA 模型的任务、采集参数、训练参数、继续训练方式和部署测试方式，并且将这些参数与 `agent_vla` 框架中的 VLA Service 对接方式统一起来。训练完成后，只需要把 checkpoint 路径写入 `configs/app.yaml`，即可通过 Agent 调用 VLA 模型。
+
+此外，本周还调研了可复用的“捡物块 / pick-place”基础模型方案。选择先从捡球、捡物块这类任务入手，主要是因为 pick-place 是桌面机器人最基础、最通用的动作单元，很多后续任务都可以拆解为类似能力：
+
+```text
+捡球 -> 抓取物体 -> 移动到目标区域 -> 放下
+放到桌子上 -> 抓取物体 -> 移动到桌面指定位置 -> 放下
+整理桌面 -> 多次执行 pick-place
+人手递物 -> 接近物体 -> 闭合夹爪 -> 移动到目标区
+```
+
+当前调研结论是：第一版不直接追求大而全的多任务模型，而是先训练一个稳定的 `so101_ball_pick_smolvla_v1`，把它作为可复用的桌面抓取基础模型。后续如果捡球效果稳定，再把数据扩展为更通用的捡物块模型，例如：
+
+```text
+czw1/so101_pick_object_v1
+```
+
+该数据集可以逐步加入：
+
+- 球
+- 方块
+- 小积木
+- 轻量日用品
+- 不同颜色和不同材质的小物体
+
+对应的任务描述可以统一为：
+
+```text
+Pick up the object and place it in the target area.
+```
+
+这样可以把模型从“只会捡球”扩展为“能捡常见小物体”，提高后续复用价值。对于 Agent 框架来说，这类能力可以注册成一个通用 VLA 技能：
+
+```yaml
+pick_object_v1:
+  name: Pick up object
+  task_prompt: "Pick up the object and place it in the target area."
+  policy_path: /home/czw1/lerobot/outputs/train/so101_pick_object_smolvla_v1/checkpoints/...
+```
+
+后续 Agent 在理解用户指令时，可以把“捡球”“拿积木”“把这个东西放到目标区”等不同说法统一路由到同一个可复用的 `pick_object_v1` 技能，从而减少重复训练和重复开发成本。
 
 ### 三、下周主要工作
 
