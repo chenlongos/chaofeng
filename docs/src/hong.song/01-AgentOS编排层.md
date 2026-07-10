@@ -1,6 +1,6 @@
 # AgentOS 编排层
 
-> 宋泓 · AgentOS 编排层技术文档
+> 宋红 · AgentOS 编排层技术文档
 > 代码位置：`agent-llm-vla/src/agent_api/`
 > 配套约束：`D:\THU\BeiJing\嘲风\AgentOS任务约束手册.md`
 

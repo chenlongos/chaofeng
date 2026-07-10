@@ -8,6 +8,6 @@
       - [语音控制](./junbo.dai/02-语音控制.md)
       - [任务实现](./junbo.dai/03-任务实现.md)
   - [曹志伟](./caozhiwei/辰龙机器人实习文档week1-曹志伟.md)
-  - [宋泓](./hong.song/README.md)
+  - [宋红](./hong.song/README.md)
       - [AgentOS 编排层](./hong.song/01-AgentOS编排层.md)
       - [第1周](./hong.song/周报/第1周-2026-07-07~2026-07-09.md)
