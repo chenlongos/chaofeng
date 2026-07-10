@@ -43,3 +43,4 @@ artifacts/
 Thumbs.db
 .idea/
 .vscode/
+.gstack/
