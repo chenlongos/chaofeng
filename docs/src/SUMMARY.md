@@ -10,3 +10,5 @@
       - [第1周](./hong.song/周报/第1周-2026-07-07~2026-07-09.md)
   - [蒋丰泽](./jiangfengze/README.md)
     - [第一周](./jiangfengze/week1.md)
+  - [叶志扬](./yezhiyang/README.md)
+    - [第一周](./yezhiyang/week1.md)
