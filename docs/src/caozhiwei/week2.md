@@ -6,7 +6,7 @@
 | ------------ | --------------- | -------- | ---------------------------- | ------------ | --------------------------------- | ------------------------------------- |
 | **SmolVLA**  | ✅ 官方重点支持  | 450M左右 | 图像 + 文本 + robot state    | action chunk | **小模型、端侧友好、低成本微调**  | Transformer + Action Expert，模仿学习 |
 | **OpenVLA**  | ✅ 可接入        | 7B       | 图像 + 文本                  | action token | 当前最经典开源VLA之一，泛化能力强 | 大规模机器人数据预训练 + SFT          |
-| **Pi0 (π0)** | 社区支持        | 3B左右   | 图像 + 文本 + proprioception | 连续动作     | Physical Intelligence提出，能力强 | Flow Matching + VLM                   |
+| **Pi0 (π0)** | ✅ 社区支持      | 3B左右   | 图像 + 文本 + proprioception | 连续动作     | Physical Intelligence提出，能力强 | Flow Matching + VLM                   |
 
 **openvla和pi0都需要云端训练且都需要更大的数据集来训练**
 
