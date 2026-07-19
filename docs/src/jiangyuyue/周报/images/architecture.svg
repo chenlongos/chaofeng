@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 560" width="720" height="560">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#52514e"/>
+    </marker>
+  </defs>
+
+  <style>
+    text { font-family: system-ui, sans-serif; }
+    .title { font-size: 16px; font-weight: 700; fill: #0b0b0b; }
+    .layer-label { font-size: 13px; font-weight: 700; fill: #ffffff; }
+    .layer-detail { font-size: 10.5px; fill: #ffffff; opacity: 0.85; }
+    .layer-code { font-size: 10px; font-family: monospace; fill: #ffffff; opacity: 0.75; }
+    .side-label { font-size: 10px; fill: #898781; }
+    .arrow-label { font-size: 9.5px; fill: #52514e; }
+  </style>
+
+  <!-- Background -->
+  <rect width="720" height="560" fill="#fcfcfb" rx="6"/>
+
+  <!-- Title -->
+  <text x="360" y="32" text-anchor="middle" class="title">Python → TPU 推理调用链</text>
+
+  <!-- Side labels -->
+  <text x="52" y="110" text-anchor="middle" class="side-label">用户态</text>
+  <line x1="76" y1="70" x2="76" y2="260" stroke="#e1e0d9" stroke-width="1.5"/>
+  <text x="52" y="350" text-anchor="middle" class="side-label">内核态</text>
+  <line x1="76" y1="268" x2="76" y2="395" stroke="#e1e0d9" stroke-width="1.5"/>
+  <text x="52" y="460" text-anchor="middle" class="side-label">硬件</text>
+  <line x1="76" y1="403" x2="76" y2="490" stroke="#e1e0d9" stroke-width="1.5"/>
+
+  <!-- Layer 1: Python -->
+  <rect x="140" y="56" width="440" height="74" rx="8" fill="#2a78d6"/>
+  <text x="360" y="80" text-anchor="middle" class="layer-label">Python (sg2002_tpu 包)</text>
+  <text x="360" y="98" text-anchor="middle" class="layer-code">engine = TPUEngine("model.cvimodel")</text>
+  <text x="360" y="114" text-anchor="middle" class="layer-code">output = engine(int8_data)  →  dets = decode_nms(output)</text>
+
+  <!-- Arrow 1 -->
+  <line x1="360" y1="130" x2="360" y2="152" stroke="#52514e" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <text x="376" y="146" class="arrow-label">ctypes · 纯 C ABI · 零编译依赖</text>
+
+  <!-- Layer 2: libcviruntime -->
+  <rect x="160" y="156" width="400" height="66" rx="8" fill="#1baf7a"/>
+  <text x="360" y="178" text-anchor="middle" class="layer-label">libcviruntime.so (CVI_NN API)</text>
+  <text x="360" y="196" text-anchor="middle" class="layer-code">CVI_RT_Init → RegisterModel → GetTensors → Forward → Cleanup</text>
+  <text x="360" y="212" text-anchor="middle" class="layer-detail">RISC-V musl · Cvitek TPU 运行时</text>
+
+  <!-- Arrow 2 -->
+  <line x1="360" y1="222" x2="360" y2="244" stroke="#52514e" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <text x="376" y="238" class="arrow-label">ioctl · 内核 pseudofs</text>
+
+  <!-- Layer 3: Kernel -->
+  <rect x="130" y="248" width="460" height="66" rx="8" fill="#eb6834"/>
+  <text x="360" y="270" text-anchor="middle" class="layer-label">/dev/cvi-tpu0 (StarryOS 内核 TPU 驱动)</text>
+  <text x="360" y="288" text-anchor="middle" class="layer-detail">TGOSKits StarryOS · Rust 宏内核 · FIT image + bootm 启动</text>
+  <text x="360" y="304" text-anchor="middle" class="layer-detail">字符设备驱动 · DMA buffer 映射 · ioctl 命令转发</text>
+
+  <!-- Arrow 3 -->
+  <line x1="360" y1="314" x2="360" y2="336" stroke="#52514e" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <text x="376" y="330" class="arrow-label">MMIO · 内存映射 I/O</text>
+
+  <!-- Layer 4: Hardware -->
+  <rect x="130" y="340" width="460" height="66" rx="8" fill="#4a3aa7"/>
+  <text x="360" y="362" text-anchor="middle" class="layer-label">SG2002 TPU 硬件</text>
+  <text x="360" y="380" text-anchor="middle" class="layer-detail">CVITEK NPU · TDMA (Tensor DMA) + TIU (Tensor Instruction Unit)</text>
+  <text x="360" y="396" text-anchor="middle" class="layer-detail">0.5 TOPS @ INT8 · RISC-V C906 @ 1GHz</text>
+
+  <!-- Right-side metrics panel -->
+  <rect x="520" y="430" width="175" height="62" rx="6" fill="#f0efec"/>
+  <text x="607" y="450" text-anchor="middle" font-size="10" fill="#898781" font-family="system-ui">TPU Raw Forward</text>
+  <text x="607" y="480" text-anchor="middle" font-size="26" font-weight="800" fill="#2a78d6" font-family="system-ui">40ms</text>
+
+  <!-- Bottom info -->
+  <rect x="130" y="430" width="370" height="62" rx="6" fill="#f0efec"/>
+  <text x="315" y="450" text-anchor="middle" font-size="11" fill="#52514e" font-family="system-ui">Python ↔ TPU 通信路径</text>
+  <text x="315" y="468" text-anchor="middle" font-size="10" fill="#898781" font-family="system-ui">① ctypes.CDLL 加载 .so</text>
+  <text x="315" y="482" text-anchor="middle" font-size="10" fill="#898781" font-family="system-ui">② ctypes.memmove 写入 TPU DMA buffer</text>
+  <text x="315" y="468" text-anchor="middle" font-size="10" fill="#898781" font-family="system-ui"/>
+</svg>
