@@ -5,6 +5,7 @@
 - [暑期实习报告]()
   - [曹志伟](./caozhiwei/README.md)
       - [第一周](./caozhiwei/week1.md)
+      - [第二周](./caozhiwei/week2.md)
   - [宋红](./hong.song/README.md)
       - [AgentOS 编排层](./hong.song/01-AgentOS编排层.md)
       - [当前实现状态](./hong.song/02-当前实现状态-2026-07-18.md)
