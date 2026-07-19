@@ -22,3 +22,6 @@
     - [第二周](./yezhiyang/week2.md)
   - [蒋玉月](./jiangyuyue/README.md)
     - [第1周 (07-13~07-19)](./jiangyuyue/周报/第1周-2026-07-13~2026-07-19.md)
+  - [杨铮](./yangzheng/README.md)
+    - [第2周](./yangzheng/周报/第2周-2026-07-14~2026-07-19.md)
+    - [工作日志：Octos 最小工具闭环与目录验收](./yangzheng/工作日志/01-Octos最小工具闭环与目录验收-2026-07-19.md)
