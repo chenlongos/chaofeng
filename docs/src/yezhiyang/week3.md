@@ -2,10 +2,11 @@
 
 ## 本周目标
 
-本周实际没有继续大规模推进 Ascend 310B 的算子级优化，主要工作转向两件事：
+本周实际没有继续大规模推进 Ascend 310B 的算子级优化，主要工作转向三件事：
 
 1. 复查远端仓库中已经存在但个人周报里没有展开的 Agent/VLA/LLM 接口接入基础，明确后续 SmolVLA 推理服务应如何适配现有契约。
-2. 调研 `llama.cpp` 与更适合 VLA 推理移植的 `vla.cpp` 路线，判断是否可以作为后续 RK3588、Orange Pi 或其他端侧平台的长期部署方向。
+2. 围绕 SG2002 上 ACT 推理链路做非 JPU 优化和验证，摸清当前软件侧性能边界，并固定稳定 baseline。
+3. 调研 `llama.cpp` 与更适合 VLA 推理移植的 `vla.cpp` 路线，判断是否可以作为后续 RK3588、Orange Pi 或其他端侧平台的长期部署方向。
 
 接口契约本周仍不修改。后续改造方式应是在现有 `/v1/execute` 外围新增 provider 或 bridge，把当前 SmolVLA resident worker 适配进去，而不是直接改 `common/schemas.py`。
 
@@ -107,6 +108,107 @@ Agent /v1/chat
 - skill/prompt 到 action 输出的接口闭环；
 - Agent/语音/前端服务联调；
 - 简化模型或蒸馏模型的部署可行性。
+
+## SG2002 ACT 非 JPU 优化与验证
+
+本周还围绕 SG2002 上 ACT 推理链路做了非 JPU 方向的优化验证，重点不是更换模型，而是把当前软件侧可达到的性能边界摸清，并形成可长期复测的 baseline。
+
+### CVI runtime split/no-TaskPool 接口改造
+
+在 `cviruntime` 中补充并验证了 no-TaskPool split API：
+
+```text
+CVI_NN_ForwardSubmitNoWait
+CVI_NN_ForwardWaitNoTaskPool
+CVI_RT_RunCmdbufExSubmit
+CVI_RT_WaitCmdbuf
+```
+
+同时将修改后的 runtime 持久化到本地工具链目录，并覆盖到板端 `/usr/lib` 和 `/root/sg2002-act/lib`，解决了应用侧调用 split API 时的动态链接问题。
+
+### 异步探针与调度行为验证
+
+新增并测试 `cvi_async_probe`，用于区分同步推理、异步 submit/wait、producer overlap 的行为。验证结果如下：
+
+- split API 功能正确；
+- 输出与同步路径一致；
+- submit 确实是非阻塞；
+- busy producer 会拖慢总耗时；
+- yield/sleep producer 才能体现 overlap。
+
+这说明在 SG2002 + StarryOS 单核环境下，CPU busy 型 producer 会影响 TPU wait、IRQ 或 polling 进展。也就是说，异步 submit 本身可用，但单核系统上的 CPU 抢占会抵消一部分 overlap 收益。
+
+### ACT 推理链路 split-async 改造
+
+将高性能 ACT 推理程序改造成同时支持：
+
+```text
+--inference-backend sync
+--inference-backend split-async
+```
+
+并实现了单线程 overlap eval：当前帧提交 TPU 后，CPU 预处理下一帧，再等待当前帧结果。该路径输出与同步路径完全一致，证明 split-async 实现正确。
+
+不过 20 帧和 100 帧测试都显示当前异步流水没有实际收益：
+
+| 后端 | avg_eval_wall_ms |
+| --- | --- |
+| sync | 65.294 ms |
+| split-async | 66.585 ms |
+
+当前结论是：在 SG2002 + StarryOS 单核 + 当前 CVI runtime 条件下，异步 overlap 的调度开销和 CPU 抢占成本抵消了可隐藏的预处理时间。因此异步路径保留为实验和诊断工具，不作为默认优化方向。
+
+### turbojpeg + RVV 同步 baseline
+
+构建并部署了 `act_cvi_infer_turbo_split`，支持：
+
+```text
+--jpeg-backend turbojpeg
+--preprocess-backend rvv
+--inference-backend sync
+```
+
+当前最优非 JPU baseline 为：
+
+| 阶段 | 耗时 |
+| --- | --- |
+| JPEG decode | 约 9.5 ms |
+| RVV resize | 约 3.3 ms |
+| fill | 约 0.3 ms |
+| TPU | 约 51.6 ms |
+| postprocess | 约 0.2 ms |
+| total | 约 65 ms/frame |
+
+其中 TPU 推理约占总耗时的 79%，说明在不动模型、不降低精度、不接 JPU 的前提下，非模型侧继续优化空间已经较小。
+
+### 依赖与部署问题
+
+补齐并验证了板端动态库依赖：
+
+```text
+libcviruntime.so
+libturbojpeg.so.0
+libcvikernel.so
+libcvimath.so
+```
+
+确认二进制 RPATH 为：
+
+```text
+$ORIGIN/../lib
+```
+
+并修复了 `libturbojpeg.so.0` 缺失导致的运行失败问题。
+
+### 当前结论
+
+SG2002 上当前建议默认主线固定为：
+
+```text
+turbojpeg + RVV + sync
+```
+
+异步 split 路径保留为实验分支，用于后续诊断 CVI runtime、TPU wait、producer/consumer overlap 行为。后续非 JPU 方向预计只剩小幅收益，包括减少日志和 I/O 干扰、小幅优化 RVV resize、减少输入填充开销，以及利用 ACT action chunk 降低推理频率。若要继续拿到明显额外收益，JPU 仍是后续最值得验证的硬件输入链路优化方向。
 
 ## SenseVoice 310B1 基准测试补充
 
