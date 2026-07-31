@@ -25,7 +25,7 @@
 软件标准化主要解决“同一套命令在不同电脑上跑不起来”的问题。当前项目环境约定如下：
 
 ```text
- Ubuntu 22.04
+Ubuntu 22.04
 Python 环境：conda env lerobot
 机器人框架：LeRobot 0.5.2
 采集命令：lerobot-record
@@ -98,7 +98,7 @@ LeRobot 的核心优势是数据集格式相对统一。通过 `lerobot-record` 
 5. 主从臂校准步骤
 6. 双摄像头采集命令模板
 7. LeRobotDataset 检查脚本
-8. SmolVLA / ACT / Diffusion 训练命令模板
+8. SmolVLA训练命令模板
 9. rollout 测试步骤
 10. 常见错误排查表
 ```
