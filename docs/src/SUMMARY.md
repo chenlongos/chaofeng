@@ -20,6 +20,7 @@
     - [第一周](./jiangfengze/week1.md)
     - [第二周](./jiangfengze/week2.md)
     - [第三周](./jiangfengze/week3.md)
+    - [第四周](./jiangfengze/week4.md)
     - [工作内容](./jiangfengze/project/README.md)
   - [叶志阳](./yezhiyang/README.md)
     - [第一周（2026-07-06 ~ 2026-07-10）](./yezhiyang/week1.md)
