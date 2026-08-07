@@ -16,6 +16,7 @@
       - [第2周](./hong.song/周报/第2周-2026-07-14~2026-07-18.md)
       - [第3周](./hong.song/周报/第3周-2026-07-20~2026-07-24.md)
       - [第4周](./hong.song/周报/第4周-2026-07-27~2026-07-31.md)
+      - [第5周](./hong.song/周报/第5周-2026-08-03~2026-08-07.md)
       - [SimCar 演示](./hong.song/SimCar/simcar_demo.md)
       - [端侧 Planner 与绕障](./hong.song/SimCar/simcar_agent_planner.md)
   - [蒋丰泽](./jiangfengze/README.md)
