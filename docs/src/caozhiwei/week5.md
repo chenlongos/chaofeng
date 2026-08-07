@@ -47,13 +47,169 @@ Pick up the tennis ball and place it in the target area.
 
 这 50 条数据的补充使当前数据集规模进一步扩大，也为后续 SmolVLA 或其他 VLA 模型训练提供了更多真实操作样本。
 
-## 3. 本周总结
+## 3. SmolVLA 模型微调、结果验证与本地推理准备
 
-本周主要完成了两方面工作：一是把 Hugging Face 仓库整理成统一的数据集与模型管理仓库，二是继续采集 50 条 SO101 网球抓取放置任务数据并放入仓库。整体工作重点从单次采集和本地实验，推进到标准化整理、可同步管理和后续可复现使用。
+本周在 WSL2 Ubuntu-24.04 的 LeRobot 环境中，基于已经整理好的 SO101 网球抓取放置数据集，对 SmolVLA 模型进行了本地微调，并完成了模型文件、离线推理和实机推理环境的初步验证。
 
-## 4. 下周计划
+### 3.1 训练环境
 
-1. 检查新增 50 条数据的视频质量、动作轨迹和元数据一致性。
-2. 使用扩大后的数据集继续训练或微调 VLA 模型。
-3. 对比不同数据规模下模型训练效果。
-4. 继续完善数据采集和模型训练的标准化说明。
+训练使用本机 WSL2 中的 `Ubuntu-24.04` 发行版，主要环境如下：
+
+- Conda 环境：`lerobot`
+- Python 版本：`3.12.13`
+- LeRobot 版本：`0.5.2`
+- PyTorch 版本：`2.11.0+cu128`
+- GPU：NVIDIA GeForce RTX 5060 Laptop GPU
+- CUDA：可用
+
+训练前首先确认了 LeRobot、PyTorch、CUDA、GPU 和数据集路径都能正常访问，避免由于环境或路径问题导致训练中断。
+
+### 3.2 训练数据
+
+训练数据使用本地 LeRobot v3.0 格式数据集：
+
+```text
+/home/czw1/chenlong-val-data
+```
+
+数据集对应 Hugging Face 仓库：
+
+```text
+vvzc/ChenLong_Embodied_Intelligence_Dataset
+```
+
+数据集基本信息如下：
+
+- 任务文本：`Pick up the tennis ball and place it in the target area.`
+- episode 数量：50
+- 总帧数：21187
+- 采集帧率：30 FPS
+- 图像视角：`observation.images.overhead`、`observation.images.wrist`
+- 状态维度：6
+- 动作维度：6
+- 机器人类型：`so_follower`
+
+训练前用 `LeRobotDataset` 成功加载该数据集，确认数据集长度、FPS、图像字段、状态字段和动作字段都能被当前 LeRobot 版本识别。
+
+### 3.3 训练方式与关键参数
+
+本次训练采用 `lerobot/smolvla_base` 作为预训练基座模型进行微调。由于 `smolvla_base` 默认期望的相机字段是 `camera1/camera2/camera3`，而当前数据集使用的是 `overhead/wrist` 两路相机，因此训练时显式设置：
+
+```text
+--policy.input_features=null
+--policy.output_features=null
+```
+
+让 LeRobot 从数据集自动推断输入输出特征，避免相机字段不一致导致训练失败。
+
+最终训练命令的核心参数如下：
+
+```bash
+lerobot-train \
+  --policy.path=lerobot/smolvla_base \
+  --policy.input_features=null \
+  --policy.output_features=null \
+  --dataset.repo_id=vvzc/ChenLong_Embodied_Intelligence_Dataset \
+  --dataset.root=/home/czw1/chenlong-val-data \
+  --batch_size=8 \
+  --steps=2000 \
+  --save_freq=500 \
+  --log_freq=50 \
+  --num_workers=0 \
+  --output_dir=/home/czw1/lerobot/outputs/train/smolvla_chenlong_2000steps_run1 \
+  --job_name=smolvla_chenlong_2000steps \
+  --policy.device=cuda \
+  --policy.use_amp=true \
+  --policy.push_to_hub=false \
+  --wandb.enable=false
+```
+
+训练前先分别进行了 `batch_size=1` 和 `batch_size=8` 的 2-step smoke test，确认模型权重加载、视频解码、CUDA 训练、loss 计算和 checkpoint 写入都能正常工作。`batch_size=8` 时显存占用约 2.95 GB，因此正式训练采用 batch size 8。
+
+### 3.4 训练结果
+
+正式训练共进行 2000 steps，训练过程正常结束，最终日志显示：
+
+```text
+step:2K smpl:16K ep:36 epch:0.76 loss:0.116 grdn:1.993 lr:2.5e-06 mem_gb:2.96
+End of training
+```
+
+训练过程中 loss 从早期的约 0.47 逐步下降到 0.11 左右，说明模型已经在当前数据集上完成了有效拟合。训练期间保存了 4 个 checkpoint：
+
+```text
+/home/czw1/lerobot/outputs/train/smolvla_chenlong_2000steps_run1/checkpoints/000500
+/home/czw1/lerobot/outputs/train/smolvla_chenlong_2000steps_run1/checkpoints/001000
+/home/czw1/lerobot/outputs/train/smolvla_chenlong_2000steps_run1/checkpoints/001500
+/home/czw1/lerobot/outputs/train/smolvla_chenlong_2000steps_run1/checkpoints/002000
+```
+
+最终模型路径为：
+
+```text
+/home/czw1/lerobot/outputs/train/smolvla_chenlong_2000steps_run1/checkpoints/002000/pretrained_model
+```
+
+最终模型目录包含：
+
+- `config.json`
+- `model.safetensors`
+- `train_config.json`
+- `policy_preprocessor.json`
+- `policy_postprocessor.json`
+- normalizer / unnormalizer processor 权重文件
+
+其中 `model.safetensors` **约 865 MB**，整个训练输出目录约 5.0 GB。最终模型配置中确认输入特征已经正确适配为：
+
+```text
+observation.images.overhead
+observation.images.wrist
+observation.state
+```
+
+输出特征为：
+
+```text
+action
+```
+
+### 3.5 推理验证与实机准备
+
+训练完成后，先进行了不控制机械臂的离线推理 smoke test。测试从本地数据集中读取一帧样本，加载最终 checkpoint，并在 CUDA 上调用 SmolVLA 输出动作。测试结果表明模型可以正常完成前向推理，输出形状为：
+
+```text
+action_shape=(1, 6)
+```
+
+随后对实机推理环境进行了准备和检查：
+
+- 将之前 Ubuntu 中同一台 SO101 follower 从臂的校准文件复制到本机 LeRobot 默认校准目录。
+- 通过 `usbipd` 将 follower 串口、overhead 相机和 wrist 相机挂载到 WSL2。
+- 在 WSL 中确认 `/dev/serial/by-id/` 和 `/dev/v4l/by-id/` 稳定路径可用。
+- 使用 OpenCV 分别读取 overhead 和 wrist 相机画面，均能获取 640 x 480 图像。
+- 串口可以正常打开，当前用户也具备 `dialout` 和 `video` 组权限。
+
+为后续复现实机推理，整理了以下辅助脚本：
+
+```text
+tools/smolvla_offline_infer_smoke.py
+tools/run_chenlong_smolvla_rollout.py
+tools/attach_smolvla_inference_devices.ps1
+```
+
+其中 `run_chenlong_smolvla_rollout.py` 默认使用本次训练出的本地 SmolVLA checkpoint，并使用 `overhead/wrist` 两路相机字段，与训练数据保持一致。
+
+### 3.6 当前问题与后续计划总结
+
+​	当前模型已经完成 2000-step 本地微调和离线推理验证，模型大小为865 MB，但是当前模型的表现效果不够优秀，可能的原因是数据采集数量不够准备加大数据量重新再往后训练v2版本的
+
+
+
+
+
+
+
+
+
+
+
