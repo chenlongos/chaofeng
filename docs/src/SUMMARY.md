@@ -8,6 +8,7 @@
       - [第二周](./caozhiwei/week2.md)
       - [第三周](./caozhiwei/week3.md)
       - [第四周](./caozhiwei/week4.md)
+      - [第五周](./caozhiwei/week5.md)
   - [宋红](./hong.song/README.md)
       - [AgentOS 编排层](./hong.song/01-AgentOS编排层.md)
       - [当前实现状态](./hong.song/02-当前实现状态-2026-07-18.md)
